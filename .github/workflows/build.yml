@@ -1,0 +1,112 @@
+name: Build, deploy and screenshots
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: build
+  cancel-in-progress: true
+jobs:
+  vendor:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch pdf-lib 1.17.1 and PDF.js 4.10.38
+        run: |
+          set -e
+          npm pack pdf-lib@1.17.1 pdfjs-dist@4.10.38 > /dev/null
+          mkdir -p t/a t/b
+          tar xzf pdf-lib-1.17.1.tgz -C t/a
+          tar xzf pdfjs-dist-4.10.38.tgz -C t/b
+          mkdir -p vendor
+          rm -rf vendor/cmaps vendor/standard_fonts
+          cp t/b/package/build/pdf.min.mjs vendor/pdf.min.js
+          cp t/b/package/build/pdf.worker.min.mjs vendor/pdf.worker.min.js
+          cp -r t/b/package/cmaps vendor/cmaps
+          cp -r t/b/package/standard_fonts vendor/standard_fonts
+          cp t/a/package/dist/pdf-lib.min.js vendor/pdf-lib.min.js
+          cp t/a/package/LICENSE.md vendor/LICENSE-pdf-lib.md
+          cp t/b/package/LICENSE vendor/LICENSE-pdfjs.txt
+          rm -rf t ./*.tgz
+          printf '%s\n' \
+            '0f9a5cad07941f0826586c94e089d89b918c46e5c17cf2d5a3c6f666e3bc694f  vendor/pdf-lib.min.js' \
+            '27fc2a057a00f92a4334ad06e17dbd7259912954e9fb7f76400bcca5fd190a9c  vendor/pdf.min.js' \
+            '1baa1844c89c80a5b2797c916e75ab29254be46d8e9cb53cb6364d7aad84be36  vendor/pdf.worker.min.js' | sha256sum -c
+      - name: Commit vendor files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add vendor
+          if git diff --cached --quiet; then echo "vendor up to date"; else git commit -m "Add pdf-lib 1.17.1 and PDF.js 4.10.38" && git push; fi
+
+  deploy:
+    needs: vendor
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Prepare site
+        run: |
+          mkdir -p /tmp/site
+          rsync -a --exclude .git --exclude .github ./ /tmp/site/
+          touch /tmp/site/.nojekyll
+          ls -la /tmp/site /tmp/site/vendor
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: /tmp/site
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  shots:
+    needs: vendor
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install
+        run: |
+          pip install playwright pillow reportlab
+          python -m playwright install --with-deps chromium
+          sudo apt-get update -q
+          sudo apt-get install -y fonts-noto-cjk fonts-inter || sudo apt-get install -y fonts-noto-cjk
+          mkdir -p ~/.config/fontconfig
+          cat > ~/.config/fontconfig/fonts.conf <<'XML'
+          <?xml version="1.0"?>
+          <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+          <fontconfig>
+            <alias><family>sans-serif</family><prefer><family>Inter</family><family>Noto Sans CJK JP</family></prefer></alias>
+            <alias><family>system-ui</family><prefer><family>Inter</family><family>Noto Sans CJK JP</family></prefer></alias>
+          </fontconfig>
+          XML
+          fc-cache -f
+      - name: Sample documents
+        run: python .github/store/samples.py /tmp/samples
+      - name: Screenshots
+        run: |
+          python -m http.server 8765 --bind 127.0.0.1 > /dev/null 2>&1 &
+          sleep 2
+          APP=http://localhost:8765/ OUT=/tmp/shots SAMPLES=/tmp/samples python .github/store/shots.py
+          ls -la /tmp/shots
+      - name: Publish to store-assets branch
+        run: |
+          cd /tmp/shots
+          git init -q -b store-assets
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "Store screenshots"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" store-assets
