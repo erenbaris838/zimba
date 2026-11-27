@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Zımba — PDF Tools</title>
+<meta name="description" content="Merge, split, compress and organize PDFs on your computer. Images to PDF, PDF to images, page numbers. Free, offline and private: your files never leave your device.">
+<meta name="theme-color" content="#F5F5F2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121315" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta property="og:title" content="Zımba — PDF Tools">
+<meta property="og:description" content="Merge, split and compress PDFs offline. Free and private.">
+<meta property="og:image" content="icon-512.png">
+<link rel="modulepreload" href="vendor/pdf.min.js">
+<style>
+:root{
+  --bg:#F5F5F2;--surface:#FFFFFF;--surface2:#EDECE7;--ink:#1B1C1E;--muted:#64666B;--line:#E0DFD9;
+  --accent:#D63B25;--accent2:#E5533C;--accent-ink:#FFFFFF;--accent-soft:rgba(214,59,37,.11);--ok:#1F7F55;--err:#C0321F;
+  --shadow:0 1px 2px rgba(20,20,20,.05),0 8px 24px rgba(20,20,20,.07);--shadow2:0 18px 50px rgba(20,20,20,.22);--r:14px;color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#121315;--surface:#1B1C1F;--surface2:#26272B;--ink:#EDEDEB;--muted:#A2A3A8;--line:#303136;--accent:#FF6B52;--accent2:#FF846E;--accent-ink:#250700;--accent-soft:rgba(255,107,82,.14);--ok:#4CC38A;--err:#FF7B6E;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);--shadow2:0 18px 60px rgba(0,0,0,.6);color-scheme:dark}
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 "Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,"Noto Sans","PingFang SC","Hiragino Sans","Yu Gothic UI",sans-serif;-webkit-font-smoothing:antialiased}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.app{display:flex;flex-direction:column;height:100%;min-height:0}
+
+/* header */
+.top{display:flex;align-items:center;gap:8px;padding:9px 16px;padding-top:max(9px,env(safe-area-inset-top));border-bottom:1px solid var(--line);background:var(--bg);position:relative;z-index:5}
+.brand{display:flex;align-items:center;gap:10px;border:0;background:none;padding:4px 6px;margin-left:-6px;border-radius:10px;font-weight:700;font-size:18px;letter-spacing:-.01em}
+.brand img{width:30px;height:30px;border-radius:8px}
+.spacer{flex:1}
+.lang{display:flex;align-items:center;gap:6px;color:var(--muted);padding:0 4px;border-radius:10px}
+.lang select{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:6px 8px;color:var(--ink);max-width:150px}
+.toplink{color:var(--muted);text-decoration:none;padding:7px 10px;border-radius:10px;font-size:14px}
+.toplink:hover{background:var(--surface2);color:var(--ink)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:9px 15px;border-radius:11px;font-weight:600;font-size:14.5px;white-space:nowrap;transition:background .15s,border-color .15s,transform .05s}
+.btn:hover{background:var(--surface2)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.45;cursor:default;transform:none}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{background:var(--accent2);border-color:var(--accent2)}
+.btn.ghost{background:transparent;border-color:transparent}
+.btn.ghost:hover{background:var(--surface2)}
+.btn.big{padding:13px 24px;font-size:16px;border-radius:13px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;border:0;background:transparent;color:var(--ink);flex:none}
+.icon-btn:hover{background:var(--surface2)}
+.icon-btn:disabled{opacity:.35;cursor:default;background:transparent}
+
+/* home */
+.home{flex:1;overflow:auto;padding:0 16px 24px}
+.home-in{max-width:1080px;margin:0 auto}
+.hero{text-align:center;padding:42px 0 22px}
+.hero h1{font-size:clamp(26px,4.2vw,40px);line-height:1.12;letter-spacing:-.025em;margin:0 0 12px;font-weight:750}
+.hero p{margin:0 auto;color:var(--muted);font-size:clamp(15px,1.8vw,18px);max-width:620px}
+.drop{margin:14px auto 0;max-width:760px;border:2px dashed color-mix(in srgb,var(--accent) 45%,var(--line));background:var(--surface);border-radius:22px;padding:34px 20px 28px;text-align:center;box-shadow:var(--shadow);transition:border-color .15s,background .15s}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop-ic{width:58px;height:58px;border-radius:16px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;margin:0 auto 14px}
+.drop-ic svg{width:30px;height:30px}
+.drop-title{font-size:18px;font-weight:650;margin:0 0 16px}
+.drop-hint{margin:14px 0 0;color:var(--muted);font-size:13.5px}
+.lock{display:flex;align-items:center;justify-content:center;gap:7px;color:var(--ok);font-size:13.5px;margin:18px 0 0;font-weight:600}
+.lock svg{width:16px;height:16px}
+.tools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:34px 0 0}
+.tool{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:16px 16px 15px;transition:border-color .15s,box-shadow .15s,transform .15s}
+.tool:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--line));box-shadow:var(--shadow);transform:translateY(-1px)}
+.tool .ti{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;margin-bottom:8px;color:#fff;background:var(--c)}
+.tool .ti svg{width:22px;height:22px}
+.tool b{font-size:15.5px;font-weight:650}
+.tool span{color:var(--muted);font-size:13.5px;line-height:1.35}
+.foot{text-align:center;color:var(--muted);font-size:13px;margin:34px 0 0}
+.foot a{color:inherit}
+
+/* workspace */
+.work{flex:1;display:flex;flex-direction:column;min-height:0}
+.bar1{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line)}
+.chips{flex:1;display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin;min-width:0;padding:2px 0}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 4px 4px 11px;font-size:13.5px;white-space:nowrap;max-width:300px}
+.chip .dot{width:9px;height:9px;border-radius:50%;background:var(--c);flex:none}
+.chip .nm{overflow:hidden;text-overflow:ellipsis}
+.chip .ct{color:var(--muted)}
+.chip .lk{color:var(--muted);display:inline-flex}
+.chip .lk svg{width:14px;height:14px}
+.chip button{border:0;background:transparent;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:var(--muted);flex:none}
+.chip button:hover{background:var(--surface2);color:var(--ink)}
+.chip button svg{width:14px;height:14px}
+.bar2{display:flex;align-items:center;gap:4px;padding:6px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.selbox{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;cursor:pointer;font-size:14px;user-select:none}
+.selbox:hover{background:var(--surface2)}
+.selbox input{width:17px;height:17px;accent-color:var(--accent);margin:0}
+.sep{width:1px;height:22px;background:var(--line);margin:0 6px}
+.zoom{display:flex;align-items:center;gap:8px;color:var(--muted);margin-left:auto}
+.zoom input{width:110px;accent-color:var(--accent)}
+.hint{margin:10px 12px 0;padding:10px 14px;border-radius:12px;background:var(--accent-soft);color:var(--ink);font-size:14px;display:flex;align-items:center;gap:10px}
+.hint button{margin-left:auto}
+.gridwrap{flex:1;overflow:auto;position:relative;min-height:0}
+.grid{--tw:150px;--th:calc(var(--tw) * 1.32);display:grid;grid-template-columns:repeat(auto-fill,minmax(calc(var(--tw) + 22px),1fr));gap:14px;padding:16px 16px 28px;align-content:start}
+.card{position:relative;border-radius:12px;padding:10px 10px 8px;border:1.5px solid transparent;background:transparent;outline:none;touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab}
+.card:hover{background:var(--surface2)}
+.card:focus-visible{border-color:var(--accent)}
+.card.sel{background:var(--accent-soft);border-color:var(--accent)}
+.card.lifted{opacity:.35}
+.card.ins-before::before,.card.ins-after::after{content:"";position:absolute;top:8px;bottom:8px;width:4px;border-radius:2px;background:var(--accent)}
+.card.ins-before::before{left:-9px}
+.card.ins-after::after{right:-9px}
+.thumb{width:var(--tw);height:var(--th);margin:0 auto;display:flex;align-items:center;justify-content:center;position:relative}
+.thumb img{max-width:var(--tw);max-height:var(--th);display:block;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.14),0 4px 14px rgba(0,0,0,.08);border-radius:3px;transition:transform .2s;pointer-events:none}
+.thumb img.q{max-width:var(--th);max-height:var(--tw)}
+.thumb .ph{width:calc(var(--tw) * .76);height:calc(var(--tw) * 1.02);background:var(--surface);border-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.meta{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.meta .dot{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.check{position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;border:2px solid var(--line);background:var(--surface);display:grid;place-items:center;opacity:0;transition:opacity .12s;color:var(--accent-ink)}
+.check svg{width:13px;height:13px;stroke-width:3}
+.card:hover .check,.grid.selecting .check{opacity:1}
+.card.sel .check{opacity:1;background:var(--accent);border-color:var(--accent)}
+.card:not(.sel) .check svg{visibility:hidden}
+.ops{position:absolute;top:4px;right:4px;display:flex;flex-direction:column;gap:4px;opacity:0;transition:opacity .12s}
+.card:hover .ops,.card:focus-within .ops{opacity:1}
+.ops button{width:30px;height:30px;border-radius:9px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.ops button:hover{background:var(--surface2)}
+.ops button svg{width:16px;height:16px}
+.dragghost{position:fixed;z-index:50;pointer-events:none;width:calc(var(--tw) * .6);transform:translate(-50%,-60%) rotate(-3deg);filter:drop-shadow(0 10px 24px rgba(0,0,0,.3))}
+.dragghost img{width:100%;display:block;border-radius:3px;background:#fff}
+.dragghost b{position:absolute;top:-10px;right:-10px;background:var(--accent);color:var(--accent-ink);border-radius:999px;font-size:12px;padding:2px 8px}
+.empty{padding:60px 20px;text-align:center;color:var(--muted)}
+.actions{display:flex;align-items:center;gap:10px;padding:10px 14px;padding-bottom:max(10px,env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--bg);flex-wrap:wrap}
+.sum{color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+.act-btns{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+
+/* overlay */
+.drop-overlay{position:fixed;inset:0;z-index:60;background:color-mix(in srgb,var(--bg) 70%,transparent);backdrop-filter:blur(3px);display:grid;place-items:center;pointer-events:none}
+.drop-overlay div{border:3px dashed var(--accent);border-radius:24px;padding:40px 60px;font-size:22px;font-weight:650;background:var(--surface);color:var(--accent);box-shadow:var(--shadow2)}
+
+/* dialogs */
+dialog{border:0;padding:0;background:transparent;color:var(--ink);max-width:calc(100vw - 24px)}
+dialog::backdrop{background:rgba(10,10,12,.45)}
+.dlg{width:480px}
+.dlg-in{background:var(--surface);border-radius:18px;box-shadow:var(--shadow2);padding:22px 22px 18px;max-height:calc(100vh - 40px);overflow:auto}
+.dlg h2{margin:0 0 14px;font-size:19px;letter-spacing:-.01em}
+.field{margin:0 0 14px}
+.field>label.lbl,.lbl{display:block;font-weight:600;font-size:13.5px;margin:0 0 6px;color:var(--muted)}
+.field input[type=text],.field input[type=number],.field input[type=password],.field select{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:9px 11px}
+.field input:focus,.field select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.opt{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;margin:0 0 8px;cursor:pointer}
+.opt:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.opt input{margin:3px 0 0;accent-color:var(--accent);width:16px;height:16px;flex:none}
+.opt div b{display:block;font-size:14.5px;font-weight:600}
+.opt div span{display:block;color:var(--muted);font-size:13px}
+.opt .inl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.opt .inl input[type=number]{width:74px;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:5px 8px;margin:0}
+.opt .inl input[type=text]{flex:1;min-width:140px;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:5px 8px;margin:0}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg label{flex:1;text-align:center;padding:8px 6px;cursor:pointer;font-size:14px;border-left:1px solid var(--line)}
+.seg label:first-child{border-left:0}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label:has(input:checked){background:var(--accent-soft);color:var(--accent);font-weight:650}
+.seg label:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:-2px}
+.cbx{display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;margin:0 0 10px}
+.cbx input{width:17px;height:17px;accent-color:var(--accent);margin:0}
+.sub{padding:0 0 4px 27px}
+.note{color:var(--muted);font-size:13px;margin:4px 0 14px}
+.note.bad{color:var(--err)}
+.err-t{color:var(--err);font-size:13px;margin:6px 0 0}
+.dlg-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.prog{height:8px;border-radius:99px;background:var(--surface2);overflow:hidden;margin:8px 0 10px}
+.prog i{display:block;height:100%;width:0;background:var(--accent);border-radius:99px;transition:width .2s}
+.prog.ind i{width:35%;animation:ind 1.1s ease-in-out infinite}
+@keyframes ind{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
+.prog-t{color:var(--muted);font-size:14px;margin:0;font-variant-numeric:tabular-nums}
+.res{display:flex;align-items:center;gap:14px;padding:6px 0 2px}
+.res .ok{width:44px;height:44px;border-radius:50%;background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok);display:grid;place-items:center;flex:none}
+.res .ok svg{width:24px;height:24px;stroke-width:2.4}
+.res .ok.warn{background:var(--surface2);color:var(--muted)}
+.res b{display:block;font-size:16px}
+.res span{display:block;color:var(--muted);font-size:14px;word-break:break-word}
+.pv{width:min(920px,calc(100vw - 24px))}
+.pv .dlg-in{padding:12px;display:flex;flex-direction:column;gap:10px;height:calc(100vh - 40px)}
+.pv-top{display:flex;align-items:center;gap:6px}
+.pv-top span{flex:1;text-align:center;color:var(--muted);font-variant-numeric:tabular-nums}
+.pv-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:var(--surface2);border-radius:12px;overflow:hidden}
+.pv-stage img{max-width:100%;max-height:100%;background:#fff;box-shadow:0 2px 12px rgba(0,0,0,.2)}
+
+/* toasts */
+.toasts{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);z-index:80;display:flex;flex-direction:column;gap:8px;align-items:center;width:max-content;max-width:calc(100vw - 24px)}
+.toast{background:#202124;color:#fff;border-radius:12px;padding:10px 12px 10px 16px;box-shadow:var(--shadow2);display:flex;align-items:center;gap:12px;font-size:14px;animation:tin .18s ease-out}
+.toast.err{background:#8E1F12}
+.toast button{border:0;background:rgba(255,255,255,.14);color:#fff;border-radius:8px;padding:5px 10px;font-weight:600}
+.toast button:hover{background:rgba(255,255,255,.24)}
+@keyframes tin{from{transform:translateY(8px);opacity:0}}
+@media (prefers-color-scheme: dark){.toast{background:#E9E9E7;color:#141414}.toast button{background:rgba(0,0,0,.08);color:#141414}.toast.err{background:#FFB4A8;color:#3B0700}}
+
+@media (max-width:860px){.tools{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){
+  .toplink{display:none}
+  .hero{padding:28px 0 16px}
+  .drop{padding:26px 16px 22px}
+  .tool{padding:13px}
+  .grid{--tw:118px!important;gap:6px;padding:10px}
+  .zoom{display:none}
+  .actions{padding:8px 10px}
+  .sum{width:100%;text-align:center}
+  .act-btns{width:100%;margin:0;display:grid;grid-template-columns:1fr 1fr 1fr}
+  .act-btns .btn{padding:9px 6px;font-size:13.5px}
+  .act-btns .btn.primary{grid-column:1/-1;order:-1}
+  .ops{opacity:1}
+  .ops button{width:26px;height:26px}
+  .bar2 .lbl-t{display:none}
+  #addBtn span{display:none}
+  #addBtn{padding:9px 10px}
+  .chip{max-width:200px}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <button id="brand" class="brand" type="button"><img src="icon.svg" alt=""><span>Zımba</span></button>
+    <div class="spacer"></div>
+    <button id="installBtn" class="btn ghost" type="button" hidden><svg class="i" viewBox="0 0 24 24"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 19h14"/></svg><span data-t="install"></span></button>
+    <label class="lang"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 3 2.6 15 0 18M12 3c-2.6 3-2.6 15 0 18"/></svg><select id="langSel" data-ta="langLabel"></select></label>
+    <a class="toplink" href="privacy.html" target="_blank" rel="noopener" data-t="privacy"></a>
+  </header>
+
+  <main id="home" class="home">
+    <div class="home-in">
+      <section class="hero">
+        <h1 data-t="heroTitle"></h1>
+        <p data-t="heroSub"></p>
+      </section>
+      <section id="drop" class="drop">
+        <div class="drop-ic"><svg class="i" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 18v-6m0 0-2.5 2.5M12 12l2.5 2.5"/></svg></div>
+        <p class="drop-title" data-t="drop"></p>
+        <button id="pickBtn" class="btn primary big" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span data-t="choose"></span></button>
+        <p class="drop-hint" data-t="pasteHint"></p>
+        <p class="lock"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span data-t="lockNote"></span></p>
+      </section>
+      <section class="tools" id="tools">
+        <button class="tool" type="button" data-intent="merge" style="--c:#3B6FE0"><span class="ti"><svg class="i" viewBox="0 0 24 24"><path d="M8 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h3M16 4h3a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-3M9 12h6m-2.5-2.5L15 12l-2.5 2.5"/></svg></span><b data-t="tMerge"></b><span data-t="dMerge"></span></button>
+        <button class="tool" type="button" data-intent="organize" style="--c:#8B5CF6"><span class="ti"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><path d="M16.5 13.5v6m-3-3h6"/></svg></span><b data-t="tOrganize"></b><span data-t="dOrganize"></span></button>
+        <button class="tool" type="button" data-intent="split" style="--c:#E0862B"><span class="ti"><svg class="i" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8 7.5 20 17M8 16.5 20 7"/></svg></span><b data-t="tSplit"></b><span data-t="dSplit"></span></button>
+        <button class="tool" type="button" data-intent="compress" style="--c:#1F9D6B"><span class="ti"><svg class="i" viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg></span><b data-t="tCompress"></b><span data-t="dCompress"></span></button>
+        <button class="tool" type="button" data-intent="img2pdf" style="--c:#E0457B"><span class="ti"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/></svg></span><b data-t="tImg2pdf"></b><span data-t="dImg2pdf"></span></button>
+        <button class="tool" type="button" data-intent="pdf2img" style="--c:#0EA5B7"><span class="ti"><svg class="i" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><circle cx="10" cy="12" r="1.3"/><path d="m17 17-3-3-5 5"/></svg></span><b data-t="tPdf2img"></b><span data-t="dPdf2img"></span></button>
+        <button class="tool" type="button" data-intent="numbers" style="--c:#6366F1"><span class="ti"><svg class="i" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M10.5 14.5l1.5-1v4.5"/></svg></span><b data-t="tNumbers"></b><span data-t="dNumbers"></span></button>
+        <button class="tool" type="button" data-intent="extract" style="--c:#C2410C"><span class="ti"><svg class="i" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"/><path d="M14 3v5h5v3M15 15l6 0m-2.5-2.5L21 15l-2.5 2.5"/></svg></span><b data-t="tExtract"></b><span data-t="dExtract"></span></button>
+      </section>
+      <footer class="foot"><span data-t="footer"></span> · <a href="privacy.html" target="_blank" rel="noopener" data-t="privacy"></a></footer>
+    </div>
+  </main>
+
+  <main id="work" class="work" hidden>
+    <div class="bar1">
+      <button id="closeBtn" class="icon-btn" type="button" data-ta="back"><svg class="i" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <div id="chips" class="chips"></div>
+      <button id="addBtn" class="btn" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span data-t="add"></span></button>
+    </div>
+    <div class="bar2">
+      <label class="selbox"><input type="checkbox" id="selAll"><span id="selInfo"></span></label>
+      <span class="sep"></span>
+      <button id="rotLBtn" class="icon-btn" type="button" data-ta="rotL"><svg class="i" viewBox="0 0 24 24"><path d="M4 4v5h5"/><path d="M4.6 9A8 8 0 1 1 6 16.5"/></svg></button>
+      <button id="rotRBtn" class="icon-btn" type="button" data-ta="rotR"><svg class="i" viewBox="0 0 24 24"><path d="M20 4v5h-5"/><path d="M19.4 9A8 8 0 1 0 18 16.5"/></svg></button>
+      <button id="delBtn" class="icon-btn" type="button" data-ta="del"><svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg></button>
+      <button id="revBtn" class="icon-btn" type="button" data-ta="reverse"><svg class="i" viewBox="0 0 24 24"><path d="M7 4v16m0 0-3-3m3 3 3-3M17 20V4m0 0-3 3m3-3 3 3"/></svg></button>
+      <button id="undoBtn" class="icon-btn" type="button" data-ta="undo"><svg class="i" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg></button>
+      <label class="zoom"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></svg><input type="range" id="zoom" min="100" max="260" step="10" value="150" data-ta="size"></label>
+    </div>
+    <div id="hint" class="hint" hidden><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><span id="hintText"></span><button id="hintClose" class="icon-btn" type="button" data-ta="close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    <div class="gridwrap" id="gridwrap"><div id="grid" class="grid" role="listbox" aria-multiselectable="true"></div></div>
+    <div class="actions">
+      <div class="sum" id="sum"></div>
+      <div class="act-btns">
+        <button id="imgBtn" class="btn" type="button"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/></svg><span data-t="toImages"></span></button>
+        <button id="splitBtn" class="btn" type="button"><svg class="i" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8 7.5 20 17M8 16.5 20 7"/></svg><span data-t="split"></span></button>
+        <button id="compBtn" class="btn" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg><span data-t="compress"></span></button>
+        <button id="saveBtn" class="btn primary" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg><span data-t="save"></span></button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="dropOverlay" class="drop-overlay" hidden><div data-t="dropAdd"></div></div>
+<dialog id="dlg" class="dlg"><form method="dialog" class="dlg-in" id="dlgForm" novalidate></form></dialog>
+<dialog id="pv" class="pv"><div class="dlg-in">
+  <div class="pv-top">
+    <button id="pvPrev" class="icon-btn" type="button" data-ta="prev"><svg class="i" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <span id="pvInfo"></span>
+    <button id="pvNext" class="icon-btn" type="button" data-ta="next"><svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+    <button id="pvClose" class="icon-btn" type="button" data-ta="close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </div>
+  <div class="pv-stage"><img id="pvImg" alt=""></div>
+</div></dialog>
+<div id="toasts" class="toasts" aria-live="polite"></div>
+<input type="file" id="fileIn" multiple accept="application/pdf,.pdf,image/*" hidden>
+<script src="lang.js"></script>
+<script src="vendor/pdf-lib.min.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
